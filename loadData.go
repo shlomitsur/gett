@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
 	"github.com/astaxie/beego/orm"
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -13,6 +14,7 @@ import (
 const drivers_file string = "./data/drivers.json"
 const metrics_file string = "./data/metrics.json"
 
+//using plural noun because of the db tables 'drivers' and 'metrics' (the ORM assumes it)
 type Drivers struct {
 	Id            int    `orm:"column(id);auto" json:"id"`
 	Name          string `orm:"column(name);size(255);null" json:"name"`
@@ -26,23 +28,20 @@ type Metrics struct {
 	Lon       float64 `orm:"column(lon);digits(18);decimals(12)" json:"lon"`
 	Timestamp int64   `orm:"column(timestamp);type(datetime)" json:"timestamp"`
 	Lat       float64 `orm:"column(lat);digits(18);decimals(12)" json:"lat"`
-        DriverId  int       `orm:"column(driver_id)" json:"driver_id,string"`
+	DriverId  int     `orm:"column(driver_id)" json:"driver_id,string"`
 }
 
 type ModuleSource interface {
 	location() string
 }
 
-
 func (this Drivers) location() string {
-   return drivers_file
+	return drivers_file
 }
 
 func (this Metrics) location() string {
-   return metrics_file
+	return metrics_file
 }
-
-
 
 func main() {
 
@@ -89,11 +88,11 @@ func processModule(ormInstance orm.Ormer, moduleSource ModuleSource) error {
 		// read open bracket
 		_, err := dec.Token()
 		if err != nil {
-			fmt.Printf("Error while parsing json ",err)
+			fmt.Printf("Error while parsing json ", err)
 		}
 	}
-        for dec.More() {
-           switch v := moduleSource.(type) {
+	for dec.More() {
+		switch v := moduleSource.(type) {
 		case Drivers:
 			decodeErr := dec.Decode(&v)
 			_, ormError := ormInstance.Insert(&v)
@@ -106,33 +105,34 @@ func processModule(ormInstance orm.Ormer, moduleSource ModuleSource) error {
 				continue
 			}
 			fmt.Printf("%v\n", v.Name)
-
+		//There is duplicate code here because the ORM does not allow Interface{}, Go allows 'case Drivers, Metrics:' but
+		//That does not preseves the cast, I'm stackoverflowing this, now answer yet..
 		case Metrics:
-                        decodeErr := dec.Decode(&v)
-fmt.Printf("name %v, value %v , lon %v , timestamp, %v, lat %v , driverId %v\n", v.Name, v.Value, v.Lon, v.Timestamp, v.Lat, v.DriverId)
-                        if v.DriverId == 0 {
+			decodeErr := dec.Decode(&v)
+			fmt.Printf("name %v, value %v , lon %v , timestamp, %v, lat %v , driverId %v\n", v.Name, v.Value, v.Lon, v.Timestamp, v.Lat, v.DriverId)
+			if v.DriverId == 0 {
 				fmt.Printf("Skipping empty driver_id item")
 				continue
-                        }
-                        _, ormError := ormInstance.Insert(&v)
-                        if decodeErr != nil {
-                                fmt.Printf("Decode err %v\n", decodeErr)
-                                continue
-                        }
-                        if ormError != nil {
-                                fmt.Printf("ORM err %v\n", ormError)
-                                continue
-                        }
-                        fmt.Printf("%v\n", v.Name)
-                    default:
-                            fmt.Println("unknown type")
-            }
+			}
+			_, ormError := ormInstance.Insert(&v)
+			if decodeErr != nil {
+				fmt.Printf("Decode err %v\n", decodeErr)
+				continue
+			}
+			if ormError != nil {
+				fmt.Printf("ORM err %v\n", ormError)
+				continue
+			}
+			fmt.Printf("%v\n", v.Name)
+		default:
+			fmt.Println("unknown type")
+		}
 	}
 	if hasBrackets {
 		// read closing bracket
 		_, err := dec.Token()
 		if err != nil {
-			fmt.Printf("Error while parsing json ",err)
+			fmt.Printf("Error while parsing json ", err)
 		}
 	}
 	return nil
