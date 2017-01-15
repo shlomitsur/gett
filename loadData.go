@@ -106,7 +106,7 @@ func processModule(ormInstance orm.Ormer, moduleSource ModuleSource) error {
 			}
 			fmt.Printf("%v\n", v.Name)
 		//There is duplicate code here because the ORM does not allow Interface{}, Go allows 'case Drivers, Metrics:' but
-		//That does not preseves the cast, I'm stackoverflowing this, now answer yet..
+		//That does not preseves the cast, I'm stackoverflowing this, no answer yet..
 		case Metrics:
 			decodeErr := dec.Decode(&v)
 			fmt.Printf("name %v, value %v , lon %v , timestamp, %v, lat %v , driverId %v\n", v.Name, v.Value, v.Lon, v.Timestamp, v.Lat, v.DriverId)
